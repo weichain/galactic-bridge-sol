@@ -1,0 +1,24 @@
+[package]
+name = "solana-treasury"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "solana_treasury"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+solana-program = "1.18.2"
+secp256k1 = "0.28.2"
+hex = "0.4.3"
+sha3 = "0.10.8"
+libsecp256k1 = "0.7.1"
