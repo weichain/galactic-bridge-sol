@@ -140,7 +140,7 @@ describe("PDA Rent-Payer", () => {
     // const pubkey_arr = ethers.toBeArray(eth_signer.publicKey)
     // console.log('pubkey_arr', pubkey_arr.slice(0, 32))
     
-    await program.methods.recover()
+    await program.methods.verify()
     .accounts({})
     .rpc()
 

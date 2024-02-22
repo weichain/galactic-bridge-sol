@@ -22,3 +22,4 @@ secp256k1 = "0.28.2"
 hex = "0.4.3"
 sha3 = "0.10.8"
 libsecp256k1 = "0.7.1"
+k256 = { version = "0.10.4", features = ["ecdsa"] }
