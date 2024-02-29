@@ -5,45 +5,41 @@ import { assert } from "chai"
 import { ethers } from 'ethers';
 import {fromRpcSig} from "ethereumjs-util"
 
-describe("PDA Rent-Payer", () => {
+describe("Treasury", () => {
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
   const wallet = provider.wallet as anchor.Wallet
   const connection = provider.connection
-  // Read the generated IDL.
+
   const idl = JSON.parse(
     require("fs").readFileSync("./target/idl/solana_treasury.json", "utf8")
   );
-
-  //Address of the deployed program
   const programId = new anchor.web3.PublicKey("3PxEqHbGAWZthkyuJvtTjjwYSQ3HRGJVyk8MbjnZP2mt");
-
-  //Generate the program client from IDL
   const program = new anchor.Program(idl, programId) as anchor.Program<SolanaTreasury>;
-  // const program = anchor.workspace.SolanaTreasury as anchor.Program<SolanaTreasury>
 
-  it("Send SOL to contract", async () => {
-    // PDA for the Treasury Vault
-    const [treasuryPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("treasury")],
-      program.programId
-    )
-    // 1 SOL
-    const fundAmount = new anchor.BN(200 * LAMPORTS_PER_SOL)
-    let accountInfo = await program.provider.connection.getAccountInfo(
-      treasuryPDA
-    )
-    // 8nZLXraZUARNmU3P8PKbJMS7NYs7aEyw6d1aQx1km3t2
-    console.log('wallet.publicKey', wallet.publicKey.toString());
-     
-    console.log('pda BEFORE', accountInfo?.lamports);
-    console.log('pda address', treasuryPDA.toString());
-    console.log('wallet BEFORE', await connection.getBalance(wallet.publicKey));
+  // PDA for the Treasury Vault
+  const [treasuryPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from("treasury")],
+    program.programId
+  )
+
+  it("Deposit SOL and check event", async () => {
+    const data = {
+      icpAddress: '28247eeec42d05229af347b17cf02e30bf67452cff5ae7b60718d12878043642',
+      amount: new anchor.BN(100 * LAMPORTS_PER_SOL)
+    }
+    const walletBalanceInitial = await connection.getBalance(wallet.publicKey)
+
+    const listener = program.addEventListener('DepositEvent', (event, context) => {
+      assert.equal(event.sender, data.icpAddress);
+      assert.equal(event.amount.toString(), data.amount.toString());
+      program.removeEventListener(listener);
+    });
 
     await program.methods
       .deposit({
-        addressIcp: '28247eeec42d05229af347b17cf02e30bf67452cff5ae7b60718d12878043642',
-        amount:fundAmount
+        addressIcp: data.icpAddress,
+        amount: data.amount
       })
       .accounts({
         payer: wallet.publicKey,
@@ -51,47 +47,161 @@ describe("PDA Rent-Payer", () => {
       })
       .rpc()
 
-    // Check rent vault balance
-    accountInfo = await program.provider.connection.getAccountInfo(
-      treasuryPDA
-    )
-    console.log('pda AFTER', accountInfo.lamports);
-    console.log('wallet AFTER', await connection.getBalance(wallet.publicKey));
-    
-    assert(accountInfo.lamports === fundAmount.toNumber())
+    let pdaAccountInfo = await getTreasuryPDA()
+    let walletBalance = await connection.getBalance(wallet.publicKey)
+    const txFee = 4992;
 
-    const newAccount = new Keypair()
-    console.log('newAccount BEFORE', await connection.getBalance(newAccount.publicKey));
+    assert(pdaAccountInfo.lamports === data.amount.toNumber())
+    assert(walletBalance === walletBalanceInitial - data.amount.toNumber() - txFee)
+  })
 
-    const data_hash = "0x" + "e0df3dc574a459b73bbf1e885cf89e10e5692a1dff8c7270c35d7aad9a439a71"
-    const my_sig: string = '0x' + '0caad715a17ef7c9ba6966eb200325bfdaa5a6f1bca9685c7f298f08366544f65e1a907524b941f66f9f064832c96eabb6a188e12cc6a151e82da2f7131eaaaa'
-    
-    const data_hash_bytes = ethers.toBeArray(data_hash);
-    const signature_my = ethers.toBeArray(my_sig);
+  it('Withdraw SOL with valid signature and data', async () => {
+    const newWallet = new Keypair()
 
-    const withdrawAmount = new anchor.BN(LAMPORTS_PER_SOL)
+    const data = {
+      address: '0xb12B5e756A894775FC32EDdf3314Bb1B1944dC34',
+      amount: '10000000000000000000'
+    }
+    const dataHash = "0x" + "e0df3dc574a459b73bbf1e885cf89e10e5692a1dff8c7270c35d7aad9a439a71"
+    const sig = '0x' + '0caad715a17ef7c9ba6966eb200325bfdaa5a6f1bca9685c7f298f08366544f65e1a907524b941f66f9f064832c96eabb6a188e12cc6a151e82da2f7131eaaaa'
+
+    const pdaLamportsInitial = (await getTreasuryPDA()).lamports
+
     await program.methods
       .withdraw({
-        message: Buffer.from(data_hash_bytes),
-        signature: Buffer.from(signature_my).toJSON().data,
+        message: Buffer.from(ethers.toBeArray(dataHash)),
+        signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
         verifyData: {
-          address: "0xb12B5e756A894775FC32EDdf3314Bb1B1944dC34",
-          amount: new anchor.BN('10000000000000000000')
+          address: data.address,
+          amount: new anchor.BN(data.amount)
         }                        
       })
       .accounts({
-        receiver: newAccount.publicKey,
+        receiver: newWallet.publicKey,
         treasury: treasuryPDA,
       })
       .rpc()
 
-    console.log('newAccount AFTER', await connection.getBalance(newAccount.publicKey));
-    accountInfo = await program.provider.connection.getAccountInfo(
-      treasuryPDA
-    )
-    console.log('pda AFTER', accountInfo.lamports);
+    const pdaAccountInfo = await getTreasuryPDA()
+    const demoninatorTestPerposes = 1000000000
+    const newWalletBalance = await connection.getBalance(newWallet.publicKey)
+    const amount = parseInt(data.amount) / demoninatorTestPerposes
 
+    assert(pdaAccountInfo.lamports === pdaLamportsInitial - amount)
+    assert(newWalletBalance === amount)
   })
+
+  it('Fail to withdraw SOL with not valid data', async () => {
+    const newWallet = new Keypair()
+
+    const data = {
+      address: '0xb12B5e756A894775FC32EDdf3314Bb1B1944dC34',
+      amount: '200000000000000000'
+    }
+    const dataHash = "0x" + "e0df3dc574a459b73bbf1e885cf89e10e5692a1dff8c7270c35d7aad9a439a71"
+    const sig = '0x' + '0caad715a17ef7c9ba6966eb200325bfdaa5a6f1bca9685c7f298f08366544f65e1a907524b941f66f9f064832c96eabb6a188e12cc6a151e82da2f7131eaaaa'
+
+    let expectedError;
+    try {
+      await program.methods
+        .withdraw({
+          message: Buffer.from(ethers.toBeArray(dataHash)),
+          signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
+          verifyData: {
+            address: data.address,
+            amount: new anchor.BN(data.amount), // Keep the invalid amount for the test
+          },
+        })
+        .accounts({
+          receiver: newWallet.publicKey,
+          treasury: treasuryPDA,
+        })
+        .rpc();
+    } catch (error) {
+      assert(error.error.errorCode.code === 'InvalidDataHash')
+      expectedError = error 
+    }
+    
+    if (!expectedError) {
+      assert(false, 'Should have errored out')
+    }
+  })
+
+  it('Fails to withdraw SOL with not valid signature', async () => {
+    const newWallet = new Keypair()
+
+    const data = {
+      address: '0xb12B5e756A894775FC32EDdf3314Bb1B1944dC34',
+      amount: '10000000000000000000'
+    }
+    const dataHash = "0x" + "e0df3dc574a459b73bbf1e885cf89e10e5692a1dff8c7270c35d7aad9a439a71"
+    const sig = '0x' + '0cabd715a17ef7c9ba6966eb200325bfdaa5a6f1bca9685c7f298f08366544f65e1a907524b941f66f9f064832c96eabb6a188e12cc6a151e82da2f7131eaaaa'
+
+    let expectedError;
+    try {
+      await program.methods
+        .withdraw({
+          message: Buffer.from(ethers.toBeArray(dataHash)),
+          signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
+          verifyData: {
+            address: data.address,
+            amount: new anchor.BN(data.amount), // Keep the invalid amount for the test
+          },
+        })
+        .accounts({
+          receiver: newWallet.publicKey,
+          treasury: treasuryPDA,
+        })
+        .rpc();
+    } catch (error) {
+      assert(error.error.errorCode.code === 'InvalidSignature')
+      expectedError = error 
+    }
+    
+    if (!expectedError) {
+      assert(false, 'Should have errored out')
+    }
+  })
+
+  it('Fails to withdraw SOL with not valid data hash', async () => {
+    const newWallet = new Keypair()
+
+    const data = {
+      address: '0xb12B5e756A894775FC32EDdf3314Bb1B1944dC34',
+      amount: '10000000000000000000'
+    }
+    const dataHash = "0x" + "e1df3dc574a459b73bbf1e885cf89e10e5692a1dff8c7270c35d7aad9a439a71"
+    const sig = '0x' + '0cabd715a17ef7c9ba6966eb200325bfdaa5a6f1bca9685c7f298f08366544f65e1a907524b941f66f9f064832c96eabb6a188e12cc6a151e82da2f7131eaaaa'
+
+    let expectedError;
+    try {
+      await program.methods
+        .withdraw({
+          message: Buffer.from(ethers.toBeArray(dataHash)),
+          signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
+          verifyData: {
+            address: data.address,
+            amount: new anchor.BN(data.amount), // Keep the invalid amount for the test
+          },
+        })
+        .accounts({
+          receiver: newWallet.publicKey,
+          treasury: treasuryPDA,
+        })
+        .rpc();
+    } catch (error) {
+      assert(error.error.errorCode.code === 'InvalidDataHash')
+      expectedError = error 
+    }
+    
+    if (!expectedError) {
+      assert(false, 'Should have errored out')
+    }
+  })
+
+  const getTreasuryPDA = async () => {
+    return program.provider.connection.getAccountInfo(treasuryPDA)
+  }
  
   // test valid signature
   // "0caad715a17ef7c9ba6966eb200325bfdaa5a6f1bca9685c7f298f08366544f65e1a907524b941f66f9f064832c96eabb6a188e12cc6a151e82da2f7131eaaaa"
