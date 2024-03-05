@@ -29,7 +29,7 @@ pub enum WithdrawError {
 #[derive(Accounts)]
 pub struct WithdrawCtx<'info> {
     #[account(mut)]
-    /// CHECK: this is unsafe
+    /// CHECK: this is safe because hashed message and signature have been verified
     receiver: AccountInfo<'info>,
 
     #[account(

@@ -6,8 +6,8 @@ use {
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct DepositData{
-    amount: u64, 
-    address_icp: String
+    address_icp: String,
+    amount: u64
 }
 
 #[error_code]
@@ -20,7 +20,7 @@ pub enum DepositError {
 
 #[event]
 pub struct DepositEvent {
-    pub sender: String,
+    pub address_icp: String,
     pub amount: u64
 }
 
@@ -63,7 +63,7 @@ pub fn deposit(ctx: Context<DepositCtx>, data: DepositData) -> Result<()> {
     )?;
 
     emit!(DepositEvent {
-        sender: data.address_icp,
+        address_icp: data.address_icp,
         amount: transfer_amount,
     });
 
