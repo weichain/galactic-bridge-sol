@@ -25,7 +25,7 @@ describe("Treasury", () => {
 
   it("Deposit SOL and check event", async () => {
     const data = {
-      icpAddress: '28247eeec42d05229af347b17cf02e30bf67452cff5ae7b60718d12878043642',
+      addressIcp: '28247eeec42d05229af347b17cf02e30bf67452cff5ae7b60718d12878043642',
       amount: new anchor.BN(100 * LAMPORTS_PER_SOL)
     };
   
@@ -33,7 +33,7 @@ describe("Treasury", () => {
   
     // Add listener for DepositEvent and check event details
     const listener = program.addEventListener('DepositEvent', (event, context) => {
-      assert.equal(event.sender, data.icpAddress, "Deposited ICP address doesn't match expected address");
+      assert.equal(event.addressIcp, data.addressIcp, "Deposited ICP address doesn't match expected address");
       assert.equal(event.amount.toString(), data.amount.toString(), "Deposited amount doesn't match expected amount");
       program.removeEventListener(listener);
     });
@@ -41,7 +41,7 @@ describe("Treasury", () => {
     // Call program method to deposit SOL
     await program.methods
       .deposit({
-        addressIcp: data.icpAddress,
+        addressIcp: data.addressIcp,
         amount: data.amount
       })
       .accounts({
@@ -60,7 +60,6 @@ describe("Treasury", () => {
     assert(pdaAccountInfo.lamports === data.amount.toNumber(), `Treasury PDA doesn't contain deposited amount (${data.amount.toNumber()})`);
     assert(walletBalance === walletBalanceAfter, `Wallet balance doesn't reflect expected deduction (${walletBalanceAfter})`);
   });
-  
 
   it('Withdraw SOL with valid signature and data', async () => {
     const data = {
