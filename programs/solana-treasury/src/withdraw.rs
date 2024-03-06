@@ -44,10 +44,8 @@ pub struct WithdrawCtx<'info> {
 }
 
 pub fn withdraw(ctx: Context<WithdrawCtx>, data: WithdrawData, eth_pubkey: [u8; 64]) -> Result<()> {
-    // since data.verify_data.amount is ethreum format amount with 18 decimals but in solana decimals are 9
-    const DENOMINATOR_TEST_PERPOSES: u64 = 1000000000;
 
-    let transfer_amount = data.verify_data.amount / DENOMINATOR_TEST_PERPOSES;
+    let transfer_amount = data.verify_data.amount;
     let treasury_balance = ctx.accounts.treasury.lamports();
     if treasury_balance < transfer_amount {
         return err!(WithdrawError::TreasuryInsufficientAmount);
@@ -67,7 +65,7 @@ pub fn withdraw(ctx: Context<WithdrawCtx>, data: WithdrawData, eth_pubkey: [u8; 
             },
             signer_seeds
         ),
-        data.verify_data.amount / DENOMINATOR_TEST_PERPOSES,
+        data.verify_data.amount,
     )?;
 
     Ok(())
