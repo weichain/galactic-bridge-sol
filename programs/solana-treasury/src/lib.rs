@@ -1,9 +1,7 @@
 use anchor_lang::prelude::*;
-use solana_program::stake_history::Epoch;
-use solana_program::system_instruction::create_account;
-use solana_program::program::invoke_signed;
 
 pub mod utils;
+pub mod storage;
 
 pub mod deposit;
 use deposit::*;
@@ -11,8 +9,7 @@ use deposit::*;
 pub mod withdraw;
 use withdraw::*;
 
-// pub mod storage;
-// use storage::*;
+
 
 declare_id!("HS6NTv6GBVSLct8dsimRWRvjczJTAgfgDJt8VpR8wtGm");
 
@@ -36,48 +33,8 @@ pub mod solana_treasury {
         Ok(())
     }
 
-    pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData) -> Result<()>
-    { 
+    pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData) -> Result<()> { 
         withdraw::withdraw(ctx, data, ETH_PUBKEY)?;
-    //     let mut sig = data.signature.to_vec();
-    // let msg = data.message;
-    // // Find the PDA and bump seed
-    // let (pda, bump_seed) = Pubkey::find_program_address(&[b"nqkavshitstuf"], ctx.program_id);
-    // let mut lamports1: u64 = 0;
-    // let mut data1: Vec<u8> = vec![];
-    // // // Attempt to load the account to check if it already exists
-    // let account = AccountInfo::new(
-    //     &pda, // account pubkey
-    //     false, // is_signer
-    //     false, // is_writable
-    //     &mut lamports1, // lamports
-    //     &mut data1, // data
-    //     ctx.program_id, // owner
-    //     false, // executable
-    //     Epoch::default(), // rent_epoch
-    // );
-    // // let dd = account.clone();
-    // let is_account_data_empty = account.try_data_is_empty()?;
-    // let infos = &[
-    //     account,
-    //     ctx.accounts.payer.to_account_info(),
-    //     // dd
-    // ];
-    // if is_account_data_empty {
-    //     msg!("Account does not exist");
-    //     let space = 0; // Define the space for the account
-    //     let signer_seeds: &[&[&[u8]]] = &[&[b"nqkavshitstuf", &[bump_seed]]];
-    //     // The minimum lamports for rent exemption
-    //     let lamports = (Rent::get()?).minimum_balance(0);
-    //     // create_account(ctx.accounts.payer.key, &pda, lamports, space, ctx.program_id);
-    //     invoke_signed(
-    //         &create_account(ctx.accounts.payer.key, &pda, lamports, space, ctx.program_id),
-    //         infos,
-    //         signer_seeds,
-    //     )?;
-    // } else {
-    //     msg!("Account exists")
-    // }
 
         Ok(())
     }
@@ -86,44 +43,3 @@ pub mod solana_treasury {
     
     
 }
-
-// #[derive(AnchorSerialize, AnchorDeserialize)]
-// pub struct DataToVerify{
-//     address: String,    
-//     amount: u64,
-// }
-
-// #[derive(AnchorSerialize, AnchorDeserialize)]
-// pub struct WithdrawData {
-//     pub message: Vec<u8>,
-//     pub signature: [u8; 64],
-//     pub verify_data: DataToVerify
-// } 
-
-// #[error_code]
-// pub enum WithdrawError {
-//     #[msg("Treasury is not signer")]
-//     TreasuryNotSigner,
-//     #[msg("Insufficient treasury amount")]
-//     TreasuryInsufficientAmount,
-// }
-
-// #[derive(Accounts)]
-// pub struct WithdrawCtx<'info> {
-//     #[account(mut)]
-//     payer: Signer<'info>,
-
-//     #[account(mut)]
-//     /// CHECK: this is safe because hashed message and signature have been verified
-//     receiver: AccountInfo<'info>,
-
-//     #[account(
-//         mut,
-//         seeds = [
-//             b"treasury",
-//         ],
-//         bump,
-//     )]
-//     treasury: SystemAccount<'info>,
-//     system_program: Program<'info, System>,
-// }

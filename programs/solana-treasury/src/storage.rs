@@ -1,42 +1,57 @@
-// use {
-//   anchor_lang::prelude::*,
-// };
+use {
+    anchor_lang::prelude::*,
+    solana_program::{hash::{hash, Hash}, program::invoke_signed, system_instruction::create_account},
+};
 
-// pub fn create_signature_pda(ctx: Context<CreateSignaturePda>, signature1: String) -> Result<()> {
-//   // let dd = ctx.accounts.signature_pda.to_account_info();
-//   // let aa = Account::<SignaturePda>::try_from(&dd);
+use crate::withdraw::*;
 
-//     // Attempt to load the account to check if it already exists
-//     // if let Ok(existing_account) = Account::<SignaturePda>::try_from(&ctx.accounts.signature_pda.to_account_info()) {
-//     //     if existing_account.signature == signature1 {
-//     //         // The account already exists with the same signature
-//     //         return Err(ErrorCode::SignaturePdaAlreadyExists.into());
-//     //     }
-//     // }
+pub fn signature_pda_check(
+    ctx: &Context<Withdraw>,
+    data: &WithdrawData,
+) -> Result<()> {
+    if !ctx.accounts.pda.data_is_empty() {
+        return err!(WithdrawError::SignatureUsed);
+    }
+    let sig_hashed: Hash = hash(&data.signature);
+    let key = Pubkey::new_from_array(sig_hashed.to_bytes());
+    msg!("sig_hashed {:?}", sig_hashed.to_bytes());
+    msg!("key1: {}", key);
+    msg!("outside gen {}", ctx.accounts.generated_outside.key());
+    if key != ctx.accounts.generated_outside.key() {
+        return err!(WithdrawError::KeysDontMatch);
+    }
+    let space = 1;
+    let lamports = Rent::get()?.minimum_balance(space);
+    let pda_account = &ctx.accounts.pda;
+    let payer_account = &ctx.accounts.payer;
+    let pda_pubkey = pda_account.key();
+    let payer_pubkey = payer_account.key();
+    let system_program_key = ctx.accounts.system_program.key();
 
-//     // If the account does not exist or has a different signature, proceed to create it
-//     let signature_pda = &mut ctx.accounts.signature_pda;
-//     signature_pda.signature = signature1;
-//     Ok(())
-// }
+    // Define the seeds and bump seed for the PDA
+    let seeds: &[&[&[u8]]] = &[&[&key.to_bytes(), &[ctx.bumps.pda]]];
 
-// #[account]
-// pub struct SignaturePda {
-//     pub signature: String,
-// }
+    // Create the `create_account` instruction
+    let create_account_instruction = create_account(
+        &payer_pubkey,
+        &pda_pubkey,
+        lamports,
+        space as u64,
+        &system_program_key,
+    );
 
-// #[derive(Accounts)]
-// pub struct CreateSignaturePda<'info> {
-//     #[account(init, payer = user, space = 8 + 64 + 32, seeds = [b"signature"], bump)]
-//     pub signature_pda: Account<'info, SignaturePda>,
-//     pub dynamic_seed: &[u8],
-//     #[account(mut)]
-//     pub user: Signer<'info>,
-//     pub system_program: Program<'info, System>,
-// }
+    // Invoke the instruction
+    invoke_signed(
+        &create_account_instruction,
+        &[
+            payer_account.to_account_info(),
+            pda_account.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+        ],
+        seeds,
+    )?;
 
-// #[error_code]
-// pub enum ErrorCode {
-//     #[msg("The signature PDA already exists.")]
-//     SignaturePdaAlreadyExists,
-// }
+    msg!("Account Created");
+
+    Ok(())
+}

@@ -17,7 +17,7 @@ pub enum ValidationError {
 pub mod utils {
     use super::*;
     
-    pub fn verify(eth_pubkey: [u8; 64], msg: Vec<u8>, sig: [u8; 64], msg_address: String, msg_amount: u64) -> Result<()> {
+    pub fn verify(eth_pubkey: &[u8; 64], msg: &Vec<u8>, sig: &[u8; 64], msg_address: &String, msg_amount: &u64) -> Result<()> {
         let message: String = format!(
             r#"{{"address":"{}","amount":{}}}"#,
             msg_address.clone(),
@@ -26,7 +26,7 @@ pub mod utils {
     
         let msg_data_hashed: Hash = hash(&message.as_bytes());
     
-        if msg != msg_data_hashed.to_bytes() {
+        if *msg != msg_data_hashed.to_bytes() {
             msg!("MSG Dont Match");
             return err!(ValidationError::InvalidDataHash)
         }
@@ -36,13 +36,13 @@ pub mod utils {
         // Attempt recovery with both valid recovery IDs (0 and 1)
         for recovery_id in [0, 1] {
             let recovered_pubkey: Secp256k1Pubkey = secp256k1_recover(
-                &msg,
+                msg,
                 recovery_id,
-                &sig
+                sig
             )
             .map_err(|_| ProgramError::InvalidArgument)?;
     
-            if &eth_pubkey == &recovered_pubkey.0 {
+            if *eth_pubkey == recovered_pubkey.0 {
                 is_match = true;
             }
         }
