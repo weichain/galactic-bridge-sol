@@ -25,7 +25,7 @@ pub struct DepositEvent {
 }
 
 #[derive(Accounts)]
-pub struct DepositCtx<'info> {
+pub struct Deposit<'info> {
     #[account(mut)]
     payer: Signer<'info>,
 
@@ -40,7 +40,7 @@ pub struct DepositCtx<'info> {
     system_program: Program<'info, System>,
 }
 
-pub fn deposit(ctx: Context<DepositCtx>, data: DepositData) -> Result<()> {
+pub fn deposit(ctx: Context<Deposit>, data: DepositData) -> Result<()> {
     if !ctx.accounts.payer.is_signer {
         return err!(DepositError::PayerNotSigner);
     }
