@@ -1,21 +1,19 @@
-use {
-    anchor_lang::prelude::*,
-    anchor_lang::system_program::{transfer, Transfer},
-};
+use anchor_lang::{prelude::*, system_program::{transfer, Transfer}};
 
+use crate::storage;
 use crate::utils::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct DataToVerify{
-    address: String,
+pub struct Coupon {
+    address: String,    
     amount: u64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct WithdrawData {
-    message: Vec<u8>,
-    signature: [u8; 64],
-    verify_data: DataToVerify
+    pub message: Vec<u8>,
+    pub signature: [u8; 64],
+    pub coupon: Coupon
 } 
 
 #[error_code]
@@ -24,13 +22,20 @@ pub enum WithdrawError {
     TreasuryNotSigner,
     #[msg("Insufficient treasury amount")]
     TreasuryInsufficientAmount,
+    #[msg("Keys dont match")]
+    KeysDontMatch,
+    #[msg("Signature is used")]
+    SignatureUsed,
 }
 
 #[derive(Accounts)]
-pub struct WithdrawCtx<'info> {
+pub struct Withdraw<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
     #[account(mut)]
     /// CHECK: this is safe because hashed message and signature have been verified
-    receiver: AccountInfo<'info>,
+    pub receiver: AccountInfo<'info>,
 
     #[account(
         mut,
@@ -40,18 +45,32 @@ pub struct WithdrawCtx<'info> {
         bump,
     )]
     treasury: SystemAccount<'info>,
-    system_program: Program<'info, System>,
+    
+    #[account(mut)]
+    /// CHECK: this is safe because hash of signature is unique and verified
+    pub hashed_signature_pubkey: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            hashed_signature_pubkey.key().as_ref(),
+        ],
+        bump,
+    )]
+    pub signature_pda: SystemAccount<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
-pub fn withdraw(ctx: Context<WithdrawCtx>, data: WithdrawData, eth_pubkey: [u8; 64]) -> Result<()> {
-
-    let transfer_amount = data.verify_data.amount;
+pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]) -> Result<()> {
+    utils::verify(&eth_pubkey, &data.message, &data.signature, &data.coupon.address, &data.coupon.amount)?;
+    storage::signature_pda_check(&ctx, &data)?;
+    
+    let transfer_amount = data.coupon.amount;
     let treasury_balance = ctx.accounts.treasury.lamports();
     if treasury_balance < transfer_amount {
         return err!(WithdrawError::TreasuryInsufficientAmount);
     }
-
-    utils::verify(eth_pubkey, data.message, data.signature, data.verify_data.address, data.verify_data.amount)?;
 
     // PDA signer seeds
     let signer_seeds: &[&[&[u8]]] = &[&[b"treasury", &[ctx.bumps.treasury]]];
@@ -65,8 +84,9 @@ pub fn withdraw(ctx: Context<WithdrawCtx>, data: WithdrawData, eth_pubkey: [u8; 
             },
             signer_seeds
         ),
-        data.verify_data.amount,
+        data.coupon.amount,
     )?;
 
     Ok(())
 }
+
