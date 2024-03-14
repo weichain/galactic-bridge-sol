@@ -45,19 +45,19 @@ pub struct Withdraw<'info> {
         bump,
     )]
     treasury: SystemAccount<'info>,
+    
+    #[account(mut)]
+    /// CHECK: this is safe because hash of signature is unique and verified
+    pub hashed_signature_pubkey: AccountInfo<'info>,
 
     #[account(
         mut,
         seeds = [
-            generated_outside.key().as_ref(),
+            hashed_signature_pubkey.key().as_ref(),
         ],
         bump,
     )]
-    pub pda: SystemAccount<'info>,
-
-    #[account(mut)]
-    /// CHECK: this is safe 
-    pub generated_outside: AccountInfo<'info>,
+    pub signature_pda: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }

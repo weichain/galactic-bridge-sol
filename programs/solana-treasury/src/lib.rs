@@ -9,8 +9,6 @@ use deposit::*;
 pub mod withdraw;
 use withdraw::*;
 
-
-
 declare_id!("HS6NTv6GBVSLct8dsimRWRvjczJTAgfgDJt8VpR8wtGm");
 
 #[program]
@@ -25,7 +23,7 @@ pub mod solana_treasury {
         244, 183,  99,  52, 174, 181,  27, 117, 140, 186,  87,
          85,  37,  63,  72, 163,  65,  41,  79,  17, 193,  79,
         224,  24,   4,  98,  67, 119,  79,  63,  48
-      ];
+    ];
 
     pub fn deposit(ctx: Context<Deposit>, data: DepositData) -> Result<()> {
         deposit::deposit(ctx, data)?;
@@ -38,8 +36,4 @@ pub mod solana_treasury {
 
         Ok(())
     }
-
-    
-    
-    
 }
