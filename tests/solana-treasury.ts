@@ -64,7 +64,7 @@ describe("Treasury", () => {
 
   });
 
-  it('Fails to withdraw SOL with invalid data', async () => {
+  it('Fails to withdraw SOL due to invalid data', async () => {
     const data = {
       address: '9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g',
       amount: '99999999'
@@ -84,7 +84,7 @@ describe("Treasury", () => {
         .withdraw({
           message: Buffer.from(ethers.toBeArray(dataHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
-          verifyData: {
+          coupon: {
             address: data.address,
             amount: new anchor.BN(data.amount), // Intentionally invalid amount
           },
@@ -110,7 +110,7 @@ describe("Treasury", () => {
     assert(false, 'Expected to error out with InvalidDataHash')
   });
 
-  it('Fails to withdraw SOL with invalid signature', async () => {
+  it('Fails to withdraw SOL due to invalid signature', async () => {
     const data = {
       address: '9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g',
       amount: '10000000'
@@ -130,7 +130,7 @@ describe("Treasury", () => {
         .withdraw({
           message: Buffer.from(ethers.toBeArray(dataHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
-          verifyData: {
+          coupon: {
             address: data.address,
             amount: new anchor.BN(data.amount),
           },
@@ -154,7 +154,7 @@ describe("Treasury", () => {
     assert(false, 'Expected to error out with InvalidSignature')
   });
 
-  it('Fails to withdraw SOL with invalid data hash', async () => {
+  it('Fails to withdraw SOL due to invalid data hash', async () => {
     const data = {
       address: '9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g',
       amount: '10000000'
@@ -175,7 +175,7 @@ describe("Treasury", () => {
         .withdraw({
           message: Buffer.from(ethers.toBeArray(dataHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
-          verifyData: {
+          coupon: {
             address: data.address,
             amount: new anchor.BN(data.amount),
           },
@@ -199,7 +199,156 @@ describe("Treasury", () => {
     assert(false, 'Expected to error out with InvalidDataHash')
   });
 
-  // "{"address":"9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g","amount":10000000}",
+  it('Fails to withdraw due to invalid signature pubkey', async () => {
+    const data = {
+      address: '9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g',
+      amount: '10000000'
+    };
+    const dataHash = "0x" + "04a9dd358a821b90a0523cbbb3b2ad3fbd8be75e09b132c5c129b65589774c9d";
+    const sig = '0x' + '24b7b5f75624d91797593af3cc6e473f6120a4eda25a344e94f4ccf0c9155a0327d55e9cb7a740b5b197f04055cfdf9fa7525ec398b2e80c5538dd98cbb14d89';
+    const sigHashed = crypto.createHash('sha256').update(ethers.toBeArray(sig)).digest();
+    const sigHashedBytes = sigHashed.toJSON().data
+    const hashedSignaturePubkey  = new PublicKey(sigHashedBytes);
+    const [signaturePda] = PublicKey.findProgramAddressSync(
+      [hashedSignaturePubkey.toBuffer()],
+      program.programId
+    )
+    
+    const sigScam = '0x' + 'fff722f41eb1cae151458c2d9acf16695984d1376a6a0a6ab56a385204f889370aec600906f278c5d9522d1df16ab50940827f96d7f62f61cd2ba33b28f2b7df';
+    const sigHashedScam = crypto.createHash('sha256').update(ethers.toBeArray(sigScam)).digest();
+    const sigHashedBytesScam = sigHashedScam.toJSON().data
+    const hashedSignaturePubkeyScam  = new PublicKey(sigHashedBytesScam);
+    
+    try {
+      await program.methods
+        .withdraw({
+          message: Buffer.from(ethers.toBeArray(dataHash)),
+          signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
+          coupon: {
+            address: data.address,
+            amount: new anchor.BN(data.amount),
+          },
+        })
+        .accounts({
+          payer: wallet.publicKey,
+          receiver: wallet.publicKey,
+          treasury: treasuryPDA,
+          hashedSignaturePubkey: hashedSignaturePubkeyScam,
+          signaturePda: signaturePda
+        })
+        .rpc();
+    } catch (error) {
+      const code = error.error.errorCode.code
+          // Assert specific error code with informative message
+          assert(
+            code === 'ConstraintSeeds',
+            `Expected error with code 'ConstraintSeeds' but got '${code}'`
+          );
+      return 
+    }
+
+    assert(false, 'Expected to error out with ConstraintSeeds')
+  });
+
+  it('Fails to withdraw due to invalid signature pda', async () => {
+    const data = {
+      address: '9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g',
+      amount: '10000000'
+    };
+    const dataHash = "0x" + "04a9dd358a821b90a0523cbbb3b2ad3fbd8be75e09b132c5c129b65589774c9d";
+    const sig = '0x' + '24b7b5f75624d91797593af3cc6e473f6120a4eda25a344e94f4ccf0c9155a0327d55e9cb7a740b5b197f04055cfdf9fa7525ec398b2e80c5538dd98cbb14d89';
+    const sigHashed = crypto.createHash('sha256').update(ethers.toBeArray(sig)).digest();
+    const sigHashedBytes = sigHashed.toJSON().data
+    const hashedSignaturePubkey  = new PublicKey(sigHashedBytes);
+    
+    const sigScam = '0x' + 'fff722f41eb1cae151458c2d9acf16695984d1376a6a0a6ab56a385204f889370aec600906f278c5d9522d1df16ab50940827f96d7f62f61cd2ba33b28f2b7df';
+    const sigHashedScam = crypto.createHash('sha256').update(ethers.toBeArray(sigScam)).digest();
+    const sigHashedBytesScam = sigHashedScam.toJSON().data
+    const hashedSignaturePubkeyScam  = new PublicKey(sigHashedBytesScam);
+    const [signaturePdaScam] = PublicKey.findProgramAddressSync(
+      [hashedSignaturePubkeyScam.toBuffer()],
+      program.programId
+    )
+
+    try {
+      await program.methods
+        .withdraw({
+          message: Buffer.from(ethers.toBeArray(dataHash)),
+          signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
+          coupon: {
+            address: data.address,
+            amount: new anchor.BN(data.amount),
+          },
+        })
+        .accounts({
+          payer: wallet.publicKey,
+          receiver: wallet.publicKey,
+          treasury: treasuryPDA,
+          hashedSignaturePubkey: hashedSignaturePubkey,
+          signaturePda: signaturePdaScam
+        })
+        .rpc();
+    } catch (error) {
+      const code = error.error.errorCode.code
+          // Assert specific error code with informative message
+          assert(
+            code === 'ConstraintSeeds',
+            `Expected error with code 'ConstraintSeeds' but got '${code}'`
+          );
+      return 
+    }
+
+    assert(false, 'Expected to error out with ConstraintSeeds')
+  });
+
+  it('Fails to withdraw due to invalid signature pubkey and pda', async () => {
+    const data = {
+      address: '9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g',
+      amount: '10000000'
+    };
+    const dataHash = "0x" + "04a9dd358a821b90a0523cbbb3b2ad3fbd8be75e09b132c5c129b65589774c9d";
+    const sig = '0x' + '24b7b5f75624d91797593af3cc6e473f6120a4eda25a344e94f4ccf0c9155a0327d55e9cb7a740b5b197f04055cfdf9fa7525ec398b2e80c5538dd98cbb14d89';
+    
+    const sigScam = '0x' + 'fff722f41eb1cae151458c2d9acf16695984d1376a6a0a6ab56a385204f889370aec600906f278c5d9522d1df16ab50940827f96d7f62f61cd2ba33b28f2b7df';
+    const sigHashedScam = crypto.createHash('sha256').update(ethers.toBeArray(sigScam)).digest();
+    const sigHashedBytesScam = sigHashedScam.toJSON().data
+    const hashedSignaturePubkeyScam  = new PublicKey(sigHashedBytesScam);
+    const [signaturePdaScam] = PublicKey.findProgramAddressSync(
+      [hashedSignaturePubkeyScam.toBuffer()],
+      program.programId
+    )
+
+    try {
+      await program.methods
+        .withdraw({
+          message: Buffer.from(ethers.toBeArray(dataHash)),
+          signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
+          coupon: {
+            address: data.address,
+            amount: new anchor.BN(data.amount),
+          },
+        })
+        .accounts({
+          payer: wallet.publicKey,
+          receiver: wallet.publicKey,
+          treasury: treasuryPDA,
+          hashedSignaturePubkey: hashedSignaturePubkeyScam,
+          signaturePda: signaturePdaScam
+        })
+        .rpc();
+    } catch (error) {
+      const code = error.error.errorCode.code
+          // Assert specific error code with informative message
+          assert(
+            code === 'KeysDontMatch',
+            `Expected error with code 'KeysDontMatch' but got '${code}'`
+          );
+      return 
+    }
+
+    assert(false, 'Expected to error out with KeysDontMatch')
+  });
+
   it('Withdraw SOL with valid signature and data', async () => {
     const data = {
       address: '9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g',
@@ -223,7 +372,7 @@ describe("Treasury", () => {
     .withdraw({
       message: Buffer.from(ethers.toBeArray(dataHash)),
       signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
-      verifyData: {
+      coupon: {
         address: data.address,
         amount: new anchor.BN(data.amount),
       },
@@ -277,7 +426,7 @@ describe("Treasury", () => {
         .withdraw({
           message: Buffer.from(ethers.toBeArray(dataHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
-          verifyData: {
+          coupon: {
             address: data.address,
             amount: new anchor.BN(data.amount),
           },

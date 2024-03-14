@@ -13,7 +13,7 @@ pub struct Coupon {
 pub struct WithdrawData {
     pub message: Vec<u8>,
     pub signature: [u8; 64],
-    pub verify_data: Coupon
+    pub coupon: Coupon
 } 
 
 #[error_code]
@@ -63,10 +63,10 @@ pub struct Withdraw<'info> {
 }
 
 pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]) -> Result<()> {
-    utils::verify(&eth_pubkey, &data.message, &data.signature, &data.verify_data.address, &data.verify_data.amount)?;
+    utils::verify(&eth_pubkey, &data.message, &data.signature, &data.coupon.address, &data.coupon.amount)?;
     storage::signature_pda_check(&ctx, &data)?;
     
-    let transfer_amount = data.verify_data.amount;
+    let transfer_amount = data.coupon.amount;
     let treasury_balance = ctx.accounts.treasury.lamports();
     if treasury_balance < transfer_amount {
         return err!(WithdrawError::TreasuryInsufficientAmount);
@@ -84,7 +84,7 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
             },
             signer_seeds
         ),
-        data.verify_data.amount,
+        data.coupon.amount,
     )?;
 
     Ok(())
