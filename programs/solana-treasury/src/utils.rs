@@ -31,7 +31,6 @@ pub fn verify(
     let msg_data_hashed: Hash = hash(message.as_bytes());
 
     if *msg != msg_data_hashed.to_bytes() {
-        msg!("MSG Dont Match");
         return err!(ValidationError::InvalidDataHash)
     }
 
@@ -43,7 +42,6 @@ pub fn verify(
     .map_err(|_| ProgramError::InvalidArgument)?;
 
     if *eth_pubkey != recovered_pubkey.0 {
-        msg!("Sig Not valid");
         return err!(ValidationError::InvalidSignature);
     }
 
