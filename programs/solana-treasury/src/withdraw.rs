@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use anchor_lang::{prelude::*, system_program::{transfer, Transfer}};
 
 use crate::storage;
-use crate::utils::*;
+use crate::utils;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct Coupon {
@@ -13,7 +15,8 @@ pub struct Coupon {
 pub struct WithdrawData {
     pub message: Vec<u8>,
     pub signature: [u8; 64],
-    pub coupon: Coupon
+    pub coupon: Coupon,
+    pub recovery_id: u8,
 } 
 
 #[error_code]
@@ -26,6 +29,8 @@ pub enum WithdrawError {
     KeysDontMatch,
     #[msg("Signature is used")]
     SignatureUsed,
+    #[msg("Context receiver does not match coupon address")]
+    ReceiverMismatch,
 }
 
 #[derive(Accounts)]
@@ -63,7 +68,12 @@ pub struct Withdraw<'info> {
 }
 
 pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]) -> Result<()> {
-    utils::verify(&eth_pubkey, &data.message, &data.signature, &data.coupon.address, &data.coupon.amount)?;
+    let addr = Pubkey::from_str(&data.coupon.address).expect("Invalid Coupon Address"); 
+    if ctx.accounts.receiver.key() != addr {
+        return err!(WithdrawError::ReceiverMismatch);
+    }
+
+    utils::verify(&eth_pubkey, &data.message, &data.signature, &data.coupon.address, &data.coupon.amount, data.recovery_id)?;
     storage::signature_pda_check(&ctx, &data)?;
     
     let transfer_amount = data.coupon.amount;

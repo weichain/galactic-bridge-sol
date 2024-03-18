@@ -14,46 +14,40 @@ pub enum ValidationError {
     InvalidSignature,
 }
 
-pub mod utils {
-    use super::*;
-    
-    pub fn verify(eth_pubkey: &[u8; 64], msg: &Vec<u8>, sig: &[u8; 64], msg_address: &String, msg_amount: &u64) -> Result<()> {
-        let message: String = format!(
-            r#"{{"address":"{}","amount":{}}}"#,
-            msg_address.clone(),
-            msg_amount
-        );
-    
-        let msg_data_hashed: Hash = hash(&message.as_bytes());
-    
-        if *msg != msg_data_hashed.to_bytes() {
-            msg!("MSG Dont Match");
-            return err!(ValidationError::InvalidDataHash)
-        }
-    
-        let mut is_match = false;
-    
-        // Attempt recovery with both valid recovery IDs (0 and 1)
-        for recovery_id in [0, 1] {
-            let recovered_pubkey: Secp256k1Pubkey = secp256k1_recover(
-                msg,
-                recovery_id,
-                sig
-            )
-            .map_err(|_| ProgramError::InvalidArgument)?;
-    
-            if *eth_pubkey == recovered_pubkey.0 {
-                is_match = true;
-            }
-        }
-    
-        if !is_match {
-            msg!("Sig Not valid");
-            return err!(ValidationError::InvalidSignature);
-        }
-    
-        Ok(())
+pub fn verify(
+    eth_pubkey: &[u8; 64],
+    msg: &Vec<u8>,
+    sig: &[u8; 64],
+    msg_address: &str,
+    msg_amount: &u64,
+    recovery_id: u8,
+) -> Result<()> {
+    let message: String = format!(
+        r#"{{"address":"{}","amount":{}}}"#,
+        msg_address.to_owned(),
+        msg_amount
+    );
+
+    let msg_data_hashed: Hash = hash(message.as_bytes());
+
+    if *msg != msg_data_hashed.to_bytes() {
+        msg!("MSG Dont Match");
+        return err!(ValidationError::InvalidDataHash)
     }
+
+    let recovered_pubkey: Secp256k1Pubkey = secp256k1_recover(
+        msg,
+        recovery_id,
+        sig
+    )
+    .map_err(|_| ProgramError::InvalidArgument)?;
+
+    if *eth_pubkey != recovered_pubkey.0 {
+        msg!("Sig Not valid");
+        return err!(ValidationError::InvalidSignature);
+    }
+
+    Ok(())
 }
 
 
