@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 describe("Get Address", () => {
   const address =
     "0x" +
-    "04ccf59acab5758755cd1e06c5143d3727904b268579b24f948fabd6753d3ee143cdf4b76334aeb51b758cba5755253f48a341294f11c14fe018046243774f3f30".slice(
+    "04de48381e1b54e2463cafdcafc3aaf7d99b1c512a16ac60e6415514d07ab78d6010b31fc919cc196b82ede54859f1d9cd69258f83b5d5bb146a77f326b9a723ab".slice(
       2
     );
 

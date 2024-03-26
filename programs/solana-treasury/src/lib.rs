@@ -9,21 +9,22 @@ use deposit::*;
 pub mod withdraw;
 use withdraw::*;
 
-declare_id!("HS6NTv6GBVSLct8dsimRWRvjczJTAgfgDJt8VpR8wtGm");
+declare_id!("4gAeEDvkrLkbHQCF2xfccfjuvRTKncnKUxGyqNh3oUja");
 
 #[program]
 pub mod solana_treasury {
     use super::*;
 
-    // ccf59acab5758755cd1e06c5143d3727904b268579b24f948fabd6753d3ee143cdf4b76334aeb51b758cba5755253f48a341294f11c14fe018046243774f3f30
+    // 04de48381e1b54e2463cafdcafc3aaf7d99b1c512a16ac60e6415514d07ab78d6010b31fc919cc196b82ede54859f1d9cd69258f83b5d5bb146a77f326b9a723ab
     const ETH_PUBKEY: [u8; 64] = [
-        204, 245, 154, 202, 181, 117, 135,  85, 205,  30,   6,
-        197,  20,  61,  55,  39, 144,  75,  38, 133, 121, 178,
-         79, 148, 143, 171, 214, 117,  61,  62, 225,  67, 205,
-        244, 183,  99,  52, 174, 181,  27, 117, 140, 186,  87,
-         85,  37,  63,  72, 163,  65,  41,  79,  17, 193,  79,
-        224,  24,   4,  98,  67, 119,  79,  63,  48
-    ];
+        222,  72,  56,  30,  27,  84, 226,  70,  60, 175, 220,
+        175, 195, 170, 247, 217, 155,  28,  81,  42,  22, 172,
+         96, 230,  65,  85,  20, 208, 122, 183, 141,  96,  16,
+        179,  31, 201,  25, 204,  25, 107, 130, 237, 229,  72,
+         89, 241, 217, 205, 105,  37, 143, 131, 181, 213, 187,
+         20, 106, 119, 243,  38, 185, 167,  35, 171
+      ];
+
 
     pub fn deposit(ctx: Context<Deposit>, data: DepositData) -> Result<()> {
         deposit::deposit(ctx, data)?;

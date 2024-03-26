@@ -15,7 +15,7 @@ describe("Treasury", () => {
     require("fs").readFileSync("./target/idl/solana_treasury.json", "utf8")
   );
   const programId = new anchor.web3.PublicKey(
-    "HS6NTv6GBVSLct8dsimRWRvjczJTAgfgDJt8VpR8wtGm"
+    "4gAeEDvkrLkbHQCF2xfccfjuvRTKncnKUxGyqNh3oUja"
   );
   const program = new anchor.Program(
     idl,
@@ -29,27 +29,38 @@ describe("Treasury", () => {
   );
 
   const coupon = {
-    address: "9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g",
-    amount: "10000000",
+    id: 0,
+    from_icp_address:
+      "svq52-4c5cd-olo3w-r6b37-jizpw-kixdx-uarhl-nolu3-gcikk-nza7z-yae",
+    to_sol_address: "HS6NTv6GBVSLct8dsimRWRvjczJTAgfgDJt8VpR8wtGm",
+    amount: 100000,
+    timestamp: "1711114301632369000",
+    icp_burn_block_index: 7,
   };
-  const dataHash =
-    "0x" + "04a9dd358a821b90a0523cbbb3b2ad3fbd8be75e09b132c5c129b65589774c9d";
+
+  const couponHash =
+    "0x" + "ba2336a5a726a4d882a9c339f29aea12db9101cf522f3a4be405f200a3dc663b";
   const sig =
     "0x" +
-    "24b7b5f75624d91797593af3cc6e473f6120a4eda25a344e94f4ccf0c9155a0327d55e9cb7a740b5b197f04055cfdf9fa7525ec398b2e80c5538dd98cbb14d89";
+    "2d21a838a735c026c6b4b93892762932efd45b2a9cf7da2a49fd1b83346de1313c437381234e8564b059958e2b5bc09b49e5a8256912033e4c0c6b60ac347eb1";
   const recoveryId = 0;
 
   const sigHashed = crypto
     .createHash("sha256")
     .update(ethers.toBeArray(sig))
     .digest();
+
   const sigHashedBytes = sigHashed.toJSON().data;
   const hashedSignaturePubkey = new PublicKey(sigHashedBytes);
   const [signaturePda] = PublicKey.findProgramAddressSync(
     [hashedSignaturePubkey.toBuffer()],
     program.programId
   );
-  const receiverPubkey = new PublicKey(coupon.address);
+  const receiverPubkey = new PublicKey(coupon.to_sol_address);
+
+  before(async () => {
+    await rentExemptReceiverAccountOK();
+  });
 
   it("Deposit SOL and check event", async () => {
     const data = {
@@ -111,22 +122,26 @@ describe("Treasury", () => {
     );
   });
 
-  it("Fails to withdraw due to invalid data", async () => {
+  it("Fails to withdraw due to invalid coupon", async () => {
     const couponScam = {
-      address: "9gVndQ5SdugdFfGzyuKmePLRJZkCreKZ2iUTEg4agR5g",
+      ...coupon,
       amount: "99999999",
     };
 
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHash)),
+          message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            address: couponScam.address,
-            amount: new anchor.BN(couponScam.amount), // Intentionally invalid amount
+            id: new anchor.BN(couponScam.id),
+            fromIcpAddress: couponScam.from_icp_address,
+            toSolAddress: couponScam.to_sol_address,
+            amount: new anchor.BN(couponScam.amount),
+            timestamp: couponScam.timestamp,
+            icpBurnBlockIndex: new anchor.BN(couponScam.icp_burn_block_index),
           },
-          recoveryId,
+          recoveryId: recoveryId,
         })
         .accounts({
           payer: wallet.publicKey,
@@ -141,12 +156,12 @@ describe("Treasury", () => {
       const code = error.error.errorCode.code;
       // Assert specific error code with informative message
       assert(
-        code === "InvalidDataHash",
-        `Expected error with code 'InvalidDataHash' but got '${code}'`
+        code === "InvalidCouponHash",
+        `Expected error with code 'InvalidCouponHash' but got '${code}'`
       );
       return;
     }
-    assert(false, "Expected to error out with InvalidDataHash");
+    assert(false, "Expected to error out with InvalidCouponHash");
   });
 
   it("Fails to withdraw due to invalid signature", async () => {
@@ -157,13 +172,17 @@ describe("Treasury", () => {
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHash)),
+          message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sigScam)).toJSON().data,
           coupon: {
-            address: coupon.address,
+            id: new anchor.BN(coupon.id),
+            fromIcpAddress: coupon.from_icp_address,
+            toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
+            timestamp: coupon.timestamp,
+            icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
-          recoveryId,
+          recoveryId: recoveryId,
         })
         .accounts({
           payer: wallet.publicKey,
@@ -184,20 +203,24 @@ describe("Treasury", () => {
     assert(false, "Expected to error out with InvalidSignature");
   });
 
-  it("Fails to withdraw due to invalid data hash", async () => {
-    const dataHashScam =
+  it("Fails to withdraw due to invalid coupon hash", async () => {
+    const scamCouponHash =
       "0x" + "01a9dd358a821b90a0523cbbb3b2ad3fbd8be75e09b132c5c129b65589774c9d";
 
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHashScam)),
+          message: Buffer.from(ethers.toBeArray(scamCouponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            address: coupon.address,
+            id: new anchor.BN(coupon.id),
+            fromIcpAddress: coupon.from_icp_address,
+            toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
+            timestamp: coupon.timestamp,
+            icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
-          recoveryId,
+          recoveryId: recoveryId,
         })
         .accounts({
           payer: wallet.publicKey,
@@ -210,12 +233,13 @@ describe("Treasury", () => {
     } catch (error) {
       // Assert specific error code with informative message
       assert(
-        error.error.errorCode.code === "InvalidDataHash",
-        `Expected error with code 'InvalidDataHash' but got '${error.error.errorCode.code}'`
+        error.error.errorCode.code ===
+          program.idl.types[3].type.variants[0].name,
+        `Expected error with code '${program.idl.types[3].type.variants[0].name}' but got '${error.error.errorCode.code}'`
       );
       return;
     }
-    assert(false, "Expected to error out with InvalidDataHash");
+    assert(false, "Expected to error out with InvalidCouponHash");
   });
 
   it("Fails to withdraw due to invalid signature pubkey", async () => {
@@ -232,13 +256,17 @@ describe("Treasury", () => {
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHash)),
+          message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            address: coupon.address,
+            id: new anchor.BN(coupon.id),
+            fromIcpAddress: coupon.from_icp_address,
+            toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
+            timestamp: coupon.timestamp,
+            icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
-          recoveryId,
+          recoveryId: recoveryId,
         })
         .accounts({
           payer: wallet.publicKey,
@@ -279,13 +307,17 @@ describe("Treasury", () => {
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHash)),
+          message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            address: coupon.address,
+            id: new anchor.BN(coupon.id),
+            fromIcpAddress: coupon.from_icp_address,
+            toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
+            timestamp: coupon.timestamp,
+            icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
-          recoveryId,
+          recoveryId: recoveryId,
         })
         .accounts({
           payer: wallet.publicKey,
@@ -326,13 +358,17 @@ describe("Treasury", () => {
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHash)),
+          message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            address: coupon.address,
+            id: new anchor.BN(coupon.id),
+            fromIcpAddress: coupon.from_icp_address,
+            toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
+            timestamp: coupon.timestamp,
+            icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
-          recoveryId,
+          recoveryId: recoveryId,
         })
         .accounts({
           payer: wallet.publicKey,
@@ -361,13 +397,17 @@ describe("Treasury", () => {
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHash)),
+          message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            address: coupon.address,
+            id: new anchor.BN(coupon.id),
+            fromIcpAddress: coupon.from_icp_address,
+            toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
+            timestamp: coupon.timestamp,
+            icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
-          recoveryId,
+          recoveryId: recoveryId,
         })
         .accounts({
           payer: wallet.publicKey,
@@ -394,11 +434,15 @@ describe("Treasury", () => {
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHash)),
+          message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            address: coupon.address,
+            id: new anchor.BN(coupon.id),
+            fromIcpAddress: coupon.from_icp_address,
+            toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
+            timestamp: coupon.timestamp,
+            icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId,
         })
@@ -427,16 +471,19 @@ describe("Treasury", () => {
     const pdaLamportsInitial = (await getTreasuryPDA()).lamports;
     const walletBalanceInitial = await connection.getBalance(receiverPubkey);
 
-    // Call program method to withdraw SOL
     await program.methods
       .withdraw({
-        message: Buffer.from(ethers.toBeArray(dataHash)),
+        message: Buffer.from(ethers.toBeArray(couponHash)),
         signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
         coupon: {
-          address: coupon.address,
+          id: new anchor.BN(coupon.id),
+          fromIcpAddress: coupon.from_icp_address,
+          toSolAddress: coupon.to_sol_address,
           amount: new anchor.BN(coupon.amount),
+          timestamp: coupon.timestamp,
+          icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
         },
-        recoveryId: recoveryId,
+        recoveryId,
       })
       .accounts({
         payer: wallet.publicKey,
@@ -447,25 +494,21 @@ describe("Treasury", () => {
       })
       .rpc();
 
-    const pdaAccountInfo = await getTreasuryPDA();
+    const pdaLamports = (await getTreasuryPDA()).lamports;
+    const pdaLamportsExpected = pdaLamportsInitial - coupon.amount;
     const walletBalance = await connection.getBalance(receiverPubkey);
-    const expectedAmount = parseInt(coupon.amount);
-    const fee = 902848;
-
-    const walletBalanceAfter = walletBalanceInitial + expectedAmount;
+    const walletBalanceExpected = walletBalanceInitial + coupon.amount;
 
     // Assert treasury PDA balance with informative message
     assert(
-      pdaAccountInfo?.lamports ?? 0 === pdaLamportsInitial - expectedAmount,
-      `Treasury PDA balance (${
-        pdaAccountInfo?.lamports ?? 0
-      }) doesn't reflect expected decrease after withdrawal (${expectedAmount})`
+      pdaLamports === pdaLamportsExpected,
+      `Treasury PDA balance (${pdaLamports}) doesn't reflect expected decrease after withdrawal (${pdaLamportsExpected})`
     );
 
     // Assert wallet balance with informative message
     assert(
-      walletBalance === walletBalanceAfter,
-      `Wallet balance (${walletBalance}) doesn't reflect expected increase after withdrawal (${walletBalanceAfter})`
+      walletBalance === walletBalanceExpected,
+      `Wallet balance (${walletBalance}) doesn't reflect expected increase after withdrawal (${walletBalanceExpected})`
     );
   });
 
@@ -473,11 +516,15 @@ describe("Treasury", () => {
     try {
       await program.methods
         .withdraw({
-          message: Buffer.from(ethers.toBeArray(dataHash)),
+          message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            address: coupon.address,
+            id: new anchor.BN(coupon.id),
+            fromIcpAddress: coupon.from_icp_address,
+            toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
+            timestamp: coupon.timestamp,
+            icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId,
         })
@@ -504,5 +551,21 @@ describe("Treasury", () => {
 
   const getTreasuryPDA = async () => {
     return program.provider.connection.getAccountInfo(treasuryPDA);
+  };
+
+  const rentExemptReceiverAccountOK = async () => {
+    const walletBalanceInitial = await connection.getBalance(receiverPubkey);
+    const minBalance = await connection.getMinimumBalanceForRentExemption(1);
+    const isRentExempt = walletBalanceInitial >= minBalance;
+    if (!isRentExempt) {
+      const transaction = new anchor.web3.Transaction().add(
+        anchor.web3.SystemProgram.transfer({
+          fromPubkey: wallet.publicKey,
+          toPubkey: receiverPubkey,
+          lamports: minBalance,
+        })
+      );
+      await provider.sendAndConfirm(transaction, [wallet.payer]);
+    }
   };
 });
