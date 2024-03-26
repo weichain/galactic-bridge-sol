@@ -7,8 +7,12 @@ use crate::utils;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct Coupon {
-    address: String,    
+    id: u64,
+    from_icp_address: String,    
+    to_sol_address: String,
     amount: u64,
+    timestamp: String,
+    icp_burn_block_index: u64
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -31,6 +35,8 @@ pub enum WithdrawError {
     SignatureUsed,
     #[msg("Context receiver does not match coupon address")]
     ReceiverMismatch,
+    #[msg("Context receiver cannot cover rent exemption")]
+    ReceiverCannotCoverRentExemption,
 }
 
 #[derive(Accounts)]
@@ -68,19 +74,37 @@ pub struct Withdraw<'info> {
 }
 
 pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]) -> Result<()> {
-    let addr = Pubkey::from_str(&data.coupon.address).expect("Invalid Coupon Address"); 
+    let addr = Pubkey::from_str(&data.coupon.to_sol_address).expect("Invalid Coupon Address"); 
     if ctx.accounts.receiver.key() != addr {
         return err!(WithdrawError::ReceiverMismatch);
     }
 
-    utils::verify(&eth_pubkey, &data.message, &data.signature, &data.coupon.address, &data.coupon.amount, data.recovery_id)?;
-    storage::signature_pda_check(&ctx, &data)?;
-    
+    let rent_exempt_lamports = Rent::get()?.minimum_balance(ctx.accounts.receiver.data_len());
+    if rent_exempt_lamports > ctx.accounts.receiver.lamports() {
+        return err!(WithdrawError::ReceiverCannotCoverRentExemption);
+    }
+
     let transfer_amount = data.coupon.amount;
     let treasury_balance = ctx.accounts.treasury.lamports();
     if treasury_balance < transfer_amount {
         return err!(WithdrawError::TreasuryInsufficientAmount);
     }
+
+    let timestamp = u64::from_str(&data.coupon.timestamp).expect("Could not convert timestamp to u64");
+
+    utils::verify_message(
+    &data.message,
+        &data.coupon.id,
+        &data.coupon.from_icp_address,
+        &data.coupon.to_sol_address,
+        &data.coupon.amount,
+        &timestamp,
+        &data.coupon.icp_burn_block_index,
+    )?;
+    
+    utils::verify_signature(&eth_pubkey, &data.message, &data.signature, data.recovery_id)?;
+
+    storage::signature_pda_check(&ctx, &data)?;
 
     // PDA signer seeds
     let signer_seeds: &[&[&[u8]]] = &[&[b"treasury", &[ctx.bumps.treasury]]];
@@ -96,7 +120,6 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
         ),
         data.coupon.amount,
     )?;
-
     Ok(())
 }
 

@@ -5,7 +5,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-solana_treasury = "HS6NTv6GBVSLct8dsimRWRvjczJTAgfgDJt8VpR8wtGm"
+solana_treasury = "4gAeEDvkrLkbHQCF2xfccfjuvRTKncnKUxGyqNh3oUja"
 
 [registry]
 url = "https://api.apr.dev"
