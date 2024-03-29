@@ -1,18 +1,21 @@
 use std::str::FromStr;
 
-use anchor_lang::{prelude::*, system_program::{transfer, Transfer}};
+use anchor_lang::{
+    prelude::*,
+    system_program::{transfer, Transfer},
+};
 
 use crate::storage;
 use crate::utils;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct Coupon {
-    id: u64,
-    from_icp_address: String,    
+    from_icp_address: String,
     to_sol_address: String,
     amount: u64,
-    timestamp: String,
-    icp_burn_block_index: u64
+    burn_id: u64,
+    burn_timestamp: String,
+    icp_burn_block_index: u64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -21,7 +24,7 @@ pub struct WithdrawData {
     pub signature: [u8; 64],
     pub coupon: Coupon,
     pub recovery_id: u8,
-} 
+}
 
 #[error_code]
 pub enum WithdrawError {
@@ -56,7 +59,7 @@ pub struct Withdraw<'info> {
         bump,
     )]
     treasury: SystemAccount<'info>,
-    
+
     #[account(mut)]
     /// CHECK: this is safe because hash of signature is unique and verified
     pub hashed_signature_pubkey: AccountInfo<'info>,
@@ -74,7 +77,7 @@ pub struct Withdraw<'info> {
 }
 
 pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]) -> Result<()> {
-    let addr = Pubkey::from_str(&data.coupon.to_sol_address).expect("Invalid Coupon Address"); 
+    let addr = Pubkey::from_str(&data.coupon.to_sol_address).expect("Invalid Coupon Address");
     if ctx.accounts.receiver.key() != addr {
         return err!(WithdrawError::ReceiverMismatch);
     }
@@ -90,19 +93,25 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
         return err!(WithdrawError::TreasuryInsufficientAmount);
     }
 
-    let timestamp = u64::from_str(&data.coupon.timestamp).expect("Could not convert timestamp to u64");
+    let timestamp =
+        u64::from_str(&data.coupon.burn_timestamp).expect("Could not convert timestamp to u64");
 
     utils::verify_message(
-    &data.message,
-        &data.coupon.id,
+        &data.message,
         &data.coupon.from_icp_address,
         &data.coupon.to_sol_address,
         &data.coupon.amount,
+        &data.coupon.burn_id,
         &timestamp,
         &data.coupon.icp_burn_block_index,
     )?;
-    
-    utils::verify_signature(&eth_pubkey, &data.message, &data.signature, data.recovery_id)?;
+
+    utils::verify_signature(
+        &eth_pubkey,
+        &data.message,
+        &data.signature,
+        data.recovery_id,
+    )?;
 
     storage::signature_pda_check(&ctx, &data)?;
 
@@ -116,10 +125,9 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
                 from: ctx.accounts.treasury.to_account_info(),
                 to: ctx.accounts.receiver.to_account_info(),
             },
-            signer_seeds
+            signer_seeds,
         ),
         data.coupon.amount,
     )?;
     Ok(())
 }
-

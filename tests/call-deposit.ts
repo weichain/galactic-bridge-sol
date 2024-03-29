@@ -10,7 +10,7 @@ const idlProgram = require("../target/idl/solana_treasury.json");
 const fs = require("fs");
 const os = require("os");
 
-const connection = new Connection("http://127.0.0.1:8899", "confirmed");
+const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 const homeDirectory = os.homedir();
 const idFilePath = `${homeDirectory}/.config/solana/id.json`;
 
@@ -18,7 +18,7 @@ const secretKeyString = fs.readFileSync(idFilePath, "utf8");
 const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
 const wallet = Keypair.fromSecretKey(secretKey);
 
-const programId = new PublicKey("4gAeEDvkrLkbHQCF2xfccfjuvRTKncnKUxGyqNh3oUja");
+const programId = new PublicKey("AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy");
 
 const [treasuryPDA] = PublicKey.findProgramAddressSync(
   [Buffer.from("treasury")],
@@ -28,7 +28,7 @@ const [treasuryPDA] = PublicKey.findProgramAddressSync(
 const data = {
   addressIcp:
     "28247eeec42d05229af347b17cf02e30bf67452cff5ae7b60718d12878043642",
-  amount: "1000000000",
+  amount: "100000000",
 };
 
 const idl = idlProgram;
@@ -51,10 +51,16 @@ program.methods
   .transaction()
   .then(async (tx) => {
     let transaction = new Transaction().add(tx);
-    const signature = await sendAndConfirmTransaction(connection, transaction, [
-      wallet,
-    ]);
-    console.log("signature", signature);
-    const transactionDetails = await connection.getTransaction(signature);
-    console.log(transactionDetails);
+    try {
+      const signature = await sendAndConfirmTransaction(
+        connection,
+        transaction,
+        [wallet]
+      );
+      console.log("signature", signature);
+      const transactionDetails = await connection.getTransaction(signature);
+      console.log(transactionDetails);
+    } catch (e) {
+      console.log("e", e);
+    }
   });
