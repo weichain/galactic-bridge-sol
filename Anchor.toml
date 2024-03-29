@@ -5,16 +5,16 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-solana_treasury = "4gAeEDvkrLkbHQCF2xfccfjuvRTKncnKUxGyqNh3oUja"
+solana_treasury = "AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+wallet = "/home/t3dkich/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana-treasury.ts"
-getaddress = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/get-address.ts"
 deposit = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/call-deposit.ts"
+getaddress = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/get-address.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana-treasury.ts"

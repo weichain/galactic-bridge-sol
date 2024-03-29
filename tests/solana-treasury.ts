@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { SolanaTreasury } from "../target/types/solana_treasury";
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { assert } from "chai";
 import { ethers } from "ethers";
 import * as crypto from "crypto";
@@ -15,7 +15,7 @@ describe("Treasury", () => {
     require("fs").readFileSync("./target/idl/solana_treasury.json", "utf8")
   );
   const programId = new anchor.web3.PublicKey(
-    "4gAeEDvkrLkbHQCF2xfccfjuvRTKncnKUxGyqNh3oUja"
+    "AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy"
   );
   const program = new anchor.Program(
     idl,
@@ -29,20 +29,20 @@ describe("Treasury", () => {
   );
 
   const coupon = {
-    id: 0,
     from_icp_address:
       "svq52-4c5cd-olo3w-r6b37-jizpw-kixdx-uarhl-nolu3-gcikk-nza7z-yae",
-    to_sol_address: "HS6NTv6GBVSLct8dsimRWRvjczJTAgfgDJt8VpR8wtGm",
+    to_sol_address: "8nZLXraZUARNmU3P8PKbJMS7NYs7aEyw6d1aQx1km3t2",
     amount: 100000,
-    timestamp: "1711114301632369000",
-    icp_burn_block_index: 7,
+    burn_id: 2,
+    burn_timestamp: "1711616761296437000",
+    icp_burn_block_index: 106,
   };
 
   const couponHash =
-    "0x" + "ba2336a5a726a4d882a9c339f29aea12db9101cf522f3a4be405f200a3dc663b";
+    "0x" + "8278c60c27f95ccb2b0956c4b7ed9ef90e1ec67d3d8cf88cec39632d3f0d4bf0";
   const sig =
     "0x" +
-    "2d21a838a735c026c6b4b93892762932efd45b2a9cf7da2a49fd1b83346de1313c437381234e8564b059958e2b5bc09b49e5a8256912033e4c0c6b60ac347eb1";
+    "ac30c685a756feafbe9e34939054fb8e7b0879039f18eb536a06a12483f0f8d25f4e6fc29cf5fbb9742d0e9fff39dbf3bbc3adf3b56477adb614417c4157168a";
   const recoveryId = 0;
 
   const sigHashed = crypto
@@ -134,11 +134,11 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            id: new anchor.BN(couponScam.id),
             fromIcpAddress: couponScam.from_icp_address,
             toSolAddress: couponScam.to_sol_address,
             amount: new anchor.BN(couponScam.amount),
-            timestamp: couponScam.timestamp,
+            burnId: new anchor.BN(couponScam.burn_id),
+            burnTimestamp: couponScam.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(couponScam.icp_burn_block_index),
           },
           recoveryId: recoveryId,
@@ -175,11 +175,11 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sigScam)).toJSON().data,
           coupon: {
-            id: new anchor.BN(coupon.id),
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
-            timestamp: coupon.timestamp,
+            burnId: new anchor.BN(coupon.burn_id),
+            burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId: recoveryId,
@@ -213,11 +213,11 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(scamCouponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            id: new anchor.BN(coupon.id),
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
-            timestamp: coupon.timestamp,
+            burnId: new anchor.BN(coupon.burn_id),
+            burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId: recoveryId,
@@ -259,11 +259,11 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            id: new anchor.BN(coupon.id),
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
-            timestamp: coupon.timestamp,
+            burnId: new anchor.BN(coupon.burn_id),
+            burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId: recoveryId,
@@ -310,11 +310,11 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            id: new anchor.BN(coupon.id),
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
-            timestamp: coupon.timestamp,
+            burnId: new anchor.BN(coupon.burn_id),
+            burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId: recoveryId,
@@ -361,11 +361,11 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            id: new anchor.BN(coupon.id),
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
-            timestamp: coupon.timestamp,
+            burnId: new anchor.BN(coupon.burn_id),
+            burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId: recoveryId,
@@ -400,11 +400,11 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            id: new anchor.BN(coupon.id),
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
-            timestamp: coupon.timestamp,
+            burnId: new anchor.BN(coupon.burn_id),
+            burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId: recoveryId,
@@ -437,18 +437,18 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            id: new anchor.BN(coupon.id),
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
-            timestamp: coupon.timestamp,
+            burnId: new anchor.BN(coupon.burn_id),
+            burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId,
         })
         .accounts({
           payer: wallet.publicKey,
-          receiver: wallet.publicKey,
+          receiver: treasuryPDA,
           treasury: treasuryPDA,
           hashedSignaturePubkey: hashedSignaturePubkey,
           signaturePda: signaturePda,
@@ -476,11 +476,11 @@ describe("Treasury", () => {
         message: Buffer.from(ethers.toBeArray(couponHash)),
         signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
         coupon: {
-          id: new anchor.BN(coupon.id),
           fromIcpAddress: coupon.from_icp_address,
           toSolAddress: coupon.to_sol_address,
           amount: new anchor.BN(coupon.amount),
-          timestamp: coupon.timestamp,
+          burnId: new anchor.BN(coupon.burn_id),
+          burnTimestamp: coupon.burn_timestamp,
           icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
         },
         recoveryId,
@@ -497,7 +497,8 @@ describe("Treasury", () => {
     const pdaLamports = (await getTreasuryPDA()).lamports;
     const pdaLamportsExpected = pdaLamportsInitial - coupon.amount;
     const walletBalance = await connection.getBalance(receiverPubkey);
-    const walletBalanceExpected = walletBalanceInitial + coupon.amount;
+    const fee = 902816;
+    const walletBalanceExpected = walletBalanceInitial + coupon.amount - fee;
 
     // Assert treasury PDA balance with informative message
     assert(
@@ -519,11 +520,11 @@ describe("Treasury", () => {
           message: Buffer.from(ethers.toBeArray(couponHash)),
           signature: Buffer.from(ethers.toBeArray(sig)).toJSON().data,
           coupon: {
-            id: new anchor.BN(coupon.id),
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
             amount: new anchor.BN(coupon.amount),
-            timestamp: coupon.timestamp,
+            burnId: new anchor.BN(coupon.burn_id),
+            burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
           },
           recoveryId,
