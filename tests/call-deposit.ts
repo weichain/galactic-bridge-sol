@@ -11,6 +11,8 @@ const fs = require("fs");
 const os = require("os");
 
 const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+// const connection = new Connection("http://127.0.0.1:8899", "confirmed");
+
 const homeDirectory = os.homedir();
 const idFilePath = `${homeDirectory}/.config/solana/id.json`;
 
@@ -27,8 +29,8 @@ const [treasuryPDA] = PublicKey.findProgramAddressSync(
 
 const data = {
   addressIcp:
-    "28247eeec42d05229af347b17cf02e30bf67452cff5ae7b60718d12878043642",
-  amount: "100000000",
+    "svq52-4c5cd-olo3w-r6b37-jizpw-kixdx-uarhl-nolu3-gcikk-nza7z-yae",
+  amount: "0",
 };
 
 const idl = idlProgram;

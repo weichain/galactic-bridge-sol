@@ -28,7 +28,6 @@ pub fn verify_message(
         from_icp_address, to_sol_address, amount, burn_id, burn_timestamp, icp_burn_block_index
     );
     let msg_data_hashed: Hash = hash(message.as_bytes());
-
     if msg != msg_data_hashed.to_bytes() {
         return err!(ValidationError::InvalidCouponHash);
     }
