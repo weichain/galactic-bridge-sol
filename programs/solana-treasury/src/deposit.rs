@@ -1,13 +1,12 @@
 use {
     anchor_lang::prelude::*,
-    anchor_lang::system_program::{transfer, Transfer}
+    anchor_lang::system_program::{transfer, Transfer},
 };
 
-
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct DepositData{
+pub struct DepositData {
     address_icp: String,
-    amount: u64
+    amount: u64,
 }
 
 #[error_code]
@@ -16,12 +15,14 @@ pub enum DepositError {
     PayerNotSigner,
     #[msg("Insufficient payer's amount")]
     PayerInsufficientAmount,
+    #[msg("Amount must be larger that zero")]
+    InvalidAmount,
 }
 
 #[event]
 pub struct DepositEvent {
     pub address_icp: String,
-    pub amount: u64
+    pub amount: u64,
 }
 
 #[derive(Accounts)]
@@ -44,8 +45,12 @@ pub fn deposit(ctx: Context<Deposit>, data: DepositData) -> Result<()> {
     if !ctx.accounts.payer.is_signer {
         return err!(DepositError::PayerNotSigner);
     }
-    
+
     let transfer_amount = data.amount;
+    if transfer_amount <= 0 {
+        return err!(DepositError::InvalidAmount);
+    }
+
     let sender_balance = ctx.accounts.payer.lamports();
     if sender_balance < transfer_amount {
         return err!(DepositError::PayerInsufficientAmount);
