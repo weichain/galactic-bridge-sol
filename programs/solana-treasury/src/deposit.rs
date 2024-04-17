@@ -47,7 +47,7 @@ pub fn deposit(ctx: Context<Deposit>, data: DepositData) -> Result<()> {
     }
 
     let transfer_amount = data.amount;
-    if transfer_amount <= 0 {
+    if transfer_amount == 0 {
         return err!(DepositError::InvalidAmount);
     }
 
