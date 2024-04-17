@@ -17,5 +17,5 @@ default = []
 
 [dependencies]
 anchor-lang = "0.29.0"
-solana-program = "1.18.2"
+solana-program = "1.17.28"
 hex = "0.4.3"
