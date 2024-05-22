@@ -1,26 +1,40 @@
 import * as anchor from "@coral-xyz/anchor";
 import { SolanaTreasury } from "../target/types/solana_treasury";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
 import { ethers } from "ethers";
 import * as crypto from "crypto";
 
-describe("Treasury", () => {
+describe("Treasury", async () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const wallet = provider.wallet as anchor.Wallet;
   const connection = provider.connection;
-
+  const fs = require("fs");
   const idl = JSON.parse(
-    require("fs").readFileSync("./target/idl/solana_treasury.json", "utf8")
+    fs.readFileSync("./target/idl/solana_treasury.json", "utf8")
   );
-  const programId = new anchor.web3.PublicKey(
-    "AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy"
+  // const programId = new anchor.web3.PublicKey(
+  //   "AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy"
+  // );
+
+  const keypairBuffer = JSON.parse(
+    fs.readFileSync("./target/deploy/solana_treasury-keypair.json", "utf8")
   );
+  const programKeypair = anchor.web3.Keypair.fromSecretKey(
+    new Uint8Array(keypairBuffer)
+  );
+  const programId = programKeypair.publicKey;
+
   const program = new anchor.Program(
     idl,
     programId
   ) as anchor.Program<SolanaTreasury>;
+
+  // const programAccountInfo = await connection.getParsedAccountInfo(programId);
+  // const programData = (programAccountInfo.value.data as any).parsed.info
+  //   .programData;
+  // console.log("programData", programData);
 
   // PDA for the Treasury Vault
   const [treasuryPDA] = PublicKey.findProgramAddressSync(
@@ -28,22 +42,22 @@ describe("Treasury", () => {
     program.programId
   );
 
-const coupon = {
+  const coupon = {
     from_icp_address:
-      "pvmak-bbryo-hipdn-slp5u-fpsh5-tkf7f-v2wss-534um-jc454-ommhu-2qe",
-    to_sol_address: "8nZLXraZUARNmU3P8PKbJMS7NYs7aEyw6d1aQx1km3t2",
-    amount: 1000000000,
-    burn_id: 2,
-    burn_timestamp: "1712324887934495453",
-    icp_burn_block_index: 11,
+      "dtlwr-muydk-lhggc-iyffs-q47uo-qrhdz-ul7ls-6f7pd-qcbur-i3ram-zae",
+    to_sol_address: "HS6NTv6GBVSLct8dsimRWRvjczJTAgfgDJt8VpR8wtGm",
+    amount: "20_000_100_000",
+    burn_id: 0,
+    burn_timestamp: "1715785725790968000",
+    icp_burn_block_index: 10000,
   };
 
   const couponHash =
-    "0x" + "cb1009a185283a15e7804979d7b2c4a9ecc0ae4085531246264c5af4fb51e99d";
+    "0x" + "052b3251d977040ab24b0600c4c4e0997eadff7a249c398fc5d3bfcfb717fea3";
   const sig =
     "0x" +
-    "c117dfb3da43ae5679bca836a689798bed3dbdaca25d51273aeaa60550c9e4141fce1d84a4231b4ccc85b73e6f28448fe57410732a1b612f28ee7117785a9220";
-  const recoveryId = 0;
+    "299d9f7a11646b3a6108106e9341360762fd1a784a33577b2b6f946d36f991b85081bcf54522c603afd353d38fa09d1e22b9f8f254b37fd52fba2a5f8fffe2dc";
+  const recoveryId = 1;
 
   const sigHashed = crypto
     .createHash("sha256")
@@ -66,7 +80,7 @@ const coupon = {
     const data = {
       addressIcp:
         "pvmak-bbryo-hipdn-slp5u-fpsh5-tkf7f-v2wss-534um-jc454-ommhu-2qe",
-      amount: "10000000000",
+      amount: "50000000000",
     };
     const walletBalanceInitial = await connection.getBalance(wallet.publicKey);
 
@@ -125,7 +139,7 @@ const coupon = {
   it("Fails to withdraw due to invalid coupon", async () => {
     const couponScam = {
       ...coupon,
-      amount: "99999999",
+      amount: "99_999_999",
     };
 
     try {
@@ -136,7 +150,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: couponScam.from_icp_address,
             toSolAddress: couponScam.to_sol_address,
-            amount: new anchor.BN(couponScam.amount),
+            amount: couponScam.amount,
             burnId: new anchor.BN(couponScam.burn_id),
             burnTimestamp: couponScam.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(couponScam.icp_burn_block_index),
@@ -177,7 +191,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
-            amount: new anchor.BN(coupon.amount),
+            amount: coupon.amount,
             burnId: new anchor.BN(coupon.burn_id),
             burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -215,7 +229,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
-            amount: new anchor.BN(coupon.amount),
+            amount: coupon.amount,
             burnId: new anchor.BN(coupon.burn_id),
             burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -261,7 +275,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
-            amount: new anchor.BN(coupon.amount),
+            amount: coupon.amount,
             burnId: new anchor.BN(coupon.burn_id),
             burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -312,7 +326,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
-            amount: new anchor.BN(coupon.amount),
+            amount: coupon.amount,
             burnId: new anchor.BN(coupon.burn_id),
             burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -363,7 +377,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
-            amount: new anchor.BN(coupon.amount),
+            amount: coupon.amount,
             burnId: new anchor.BN(coupon.burn_id),
             burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -392,7 +406,7 @@ const coupon = {
   });
 
   it("Fails to withdraw due to incorrect recovery id", async () => {
-    const recoveryId = 1;
+    const recoveryId = 0;
 
     try {
       await program.methods
@@ -402,7 +416,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
-            amount: new anchor.BN(coupon.amount),
+            amount: coupon.amount,
             burnId: new anchor.BN(coupon.burn_id),
             burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -439,7 +453,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
-            amount: new anchor.BN(coupon.amount),
+            amount: coupon.amount,
             burnId: new anchor.BN(coupon.burn_id),
             burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -478,7 +492,7 @@ const coupon = {
         coupon: {
           fromIcpAddress: coupon.from_icp_address,
           toSolAddress: coupon.to_sol_address,
-          amount: new anchor.BN(coupon.amount),
+          amount: coupon.amount,
           burnId: new anchor.BN(coupon.burn_id),
           burnTimestamp: coupon.burn_timestamp,
           icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -494,15 +508,18 @@ const coupon = {
       })
       .rpc();
 
-    const pdaLamports = (await getTreasuryPDA()).lamports;
-    const pdaLamportsExpected = pdaLamportsInitial - coupon.amount;
+    const pdaLamports = new anchor.BN((await getTreasuryPDA()).lamports);
+    const amount = new anchor.BN(coupon.amount.replace(/_/g, ""));
+    const pdaLamportsExpected = new anchor.BN(pdaLamportsInitial).sub(amount);
     const walletBalance = await connection.getBalance(receiverPubkey);
-    const fee = 902816;
-    const walletBalanceExpected = walletBalanceInitial + coupon.amount - fee;
+    const fee = new anchor.BN("902816");
+    const walletBalanceExpected = new anchor.BN(walletBalanceInitial)
+      .add(amount)
+      .sub(fee);
 
     // Assert treasury PDA balance with informative message
     assert(
-      pdaLamports === pdaLamportsExpected,
+      pdaLamports.eq(pdaLamportsExpected),
       `Treasury PDA balance (${pdaLamports}) doesn't reflect expected decrease after withdrawal (${pdaLamportsExpected})`
     );
 
@@ -522,7 +539,7 @@ const coupon = {
           coupon: {
             fromIcpAddress: coupon.from_icp_address,
             toSolAddress: coupon.to_sol_address,
-            amount: new anchor.BN(coupon.amount),
+            amount: coupon.amount,
             burnId: new anchor.BN(coupon.burn_id),
             burnTimestamp: coupon.burn_timestamp,
             icpBurnBlockIndex: new anchor.BN(coupon.icp_burn_block_index),
@@ -548,6 +565,17 @@ const coupon = {
     }
 
     assert(false, "Expected to error out with SignatureUsed");
+  });
+
+  it("Withdraws Owner", async () => {
+    await program.methods
+      .withdrawOwner(new anchor.BN("1000000000"))
+      .accounts({
+        owner: wallet.publicKey,
+        receiver: wallet.publicKey,
+        treasury: treasuryPDA,
+      })
+      .rpc();
   });
 
   const getTreasuryPDA = async () => {
