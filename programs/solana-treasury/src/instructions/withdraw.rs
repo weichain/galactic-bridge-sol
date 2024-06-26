@@ -87,10 +87,10 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
         return err!(WithdrawError::ReceiverCannotCoverRentExemption);
     }
 
-    let transfer_string = data.coupon.amount.replace('_', "");
-    let transfer_amount = transfer_string
+    let transfer_amount_string = data.coupon.amount.replace('_', "");
+    let transfer_amount = transfer_amount_string
         .parse::<u64>()
-        .unwrap_or_else(|_| panic!("Invalid amount format: {}", transfer_string));
+        .unwrap_or_else(|_| panic!("Invalid amount format: {}", transfer_amount_string));
 
     let treasury_balance = ctx.accounts.treasury.lamports();
     if treasury_balance < transfer_amount {
