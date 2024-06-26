@@ -1,14 +1,15 @@
 use {
     anchor_lang::prelude::*,
-    solana_program::{hash::{hash, Hash}, program::invoke_signed, system_instruction::create_account},
+    solana_program::{
+        hash::{hash, Hash},
+        program::invoke_signed,
+        system_instruction::create_account,
+    },
 };
 
-use crate::withdraw::*;
+use crate::instructions::{Withdraw, WithdrawData, WithdrawError};
 
-pub fn signature_pda_check(
-    ctx: &Context<Withdraw>,
-    data: &WithdrawData,
-) -> Result<()> {
+pub fn signature_pda_check(ctx: &Context<Withdraw>, data: &WithdrawData) -> Result<()> {
     if !ctx.accounts.signature_pda.data_is_empty() {
         return err!(WithdrawError::SignatureUsed);
     }

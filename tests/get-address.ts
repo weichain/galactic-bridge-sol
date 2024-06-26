@@ -1,10 +1,12 @@
 import { ethers } from "ethers";
 
 describe("Get Address", () => {
-  // 04449d7bbca9446df12f0f929c088edfec7223c339f5d98cb5b4055572a36c94f0888809b30f7a499fcc0c2292c682fb3d7adc7656ef0d6d3f689a15ebee9c23cc
+  //   Направо ще минем на production key - key_1
+  // за да не ни се налага да деплойваме пак
+  // 04c1ab9735077d400d7e992087ed3e09721ecd25d2238f5b6d0ec5f899aff090db0f3c5b976ca2305440f31367e3b5c51cb58413de5962714ea41015812ed5069f
   const address =
     "0x" +
-    "0450871d924d2c8f80a3fc518fa63fe2248d03e40d944ffe3fcd6ccf778f90ef71844d1adf401be7a6ac8ab05f22fa20c6a6d114484f46d98345e435f740a16271".slice(
+    "04c1ab9735077d400d7e992087ed3e09721ecd25d2238f5b6d0ec5f899aff090db0f3c5b976ca2305440f31367e3b5c51cb58413de5962714ea41015812ed5069f".slice(
       2
     );
 
