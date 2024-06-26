@@ -1,8 +1,6 @@
 import { ethers } from "ethers";
 
 describe("Get Address", () => {
-  //   Направо ще минем на production key - key_1
-  // за да не ни се налага да деплойваме пак
   // 04c1ab9735077d400d7e992087ed3e09721ecd25d2238f5b6d0ec5f899aff090db0f3c5b976ca2305440f31367e3b5c51cb58413de5962714ea41015812ed5069f
   const address =
     "0x" +
