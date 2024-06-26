@@ -46,13 +46,15 @@ pub struct WithdrawOwnerEvent {
 }
 
 pub fn withdraw_owner(ctx: Context<WithdrawOwner>, transfer_amount: u64) -> Result<()> {
-    let withdraw_owner_interval = &mut ctx.accounts.withdraw_owner_interval;
     let current_slot = Clock::get()?.slot;
+    let slot_start = ctx.accounts.withdraw_owner_interval.slot_start;
+    let interval_duration = ctx.accounts.withdraw_owner_interval.interval_duration;
 
-    if current_slot < withdraw_owner_interval.slot_start
-        || current_slot
-            > withdraw_owner_interval.slot_start + withdraw_owner_interval.interval_duration
-    {
+    let combined_duration = slot_start
+        .checked_add(interval_duration)
+        .expect("Invalid slot_start and interval_duration addition");
+
+    if current_slot < slot_start || current_slot > combined_duration {
         return err!(WithdrawOwnerError::InvalidSlotInterval);
     }
 
