@@ -12,7 +12,7 @@ use crate::utils;
 pub struct Coupon {
     from_icp_address: String,
     to_sol_address: String,
-    amount: u64,
+    amount: String,
     burn_id: u64,
     burn_timestamp: String,
     icp_burn_block_index: u64,
@@ -87,7 +87,11 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
         return err!(WithdrawError::ReceiverCannotCoverRentExemption);
     }
 
-    let transfer_amount = data.coupon.amount;
+    let transfer_amount_string = data.coupon.amount.replace('_', "");
+    let transfer_amount = transfer_amount_string
+        .parse::<u64>()
+        .unwrap_or_else(|_| panic!("Invalid amount format: {}", transfer_amount_string));
+
     let treasury_balance = ctx.accounts.treasury.lamports();
     if treasury_balance < transfer_amount {
         return err!(WithdrawError::TreasuryInsufficientAmount);
@@ -127,7 +131,7 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
             },
             signer_seeds,
         ),
-        data.coupon.amount,
+        transfer_amount,
     )?;
     Ok(())
 }

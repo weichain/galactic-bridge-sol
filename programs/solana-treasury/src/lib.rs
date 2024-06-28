@@ -1,13 +1,12 @@
 use anchor_lang::prelude::*;
 
-pub mod storage;
+pub mod state;
+use state::*;
+
 pub mod utils;
 
-pub mod deposit;
-use deposit::*;
-
-pub mod withdraw;
-use withdraw::*;
+pub mod instructions;
+use instructions::*;
 
 declare_id!("AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy");
 
@@ -15,12 +14,12 @@ declare_id!("AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy");
 pub mod solana_treasury {
     use super::*;
 
-    // 04d0b2fc6a0674a6f45daf899a6dd0ac4181f2df03779a2a5b2c94ac2a76d93a6d0c13a37186bf4f70999cd4bd59345576931329271ee9b601e7c850d79dd01261
+    // 04c1ab9735077d400d7e992087ed3e09721ecd25d2238f5b6d0ec5f899aff090db0f3c5b976ca2305440f31367e3b5c51cb58413de5962714ea41015812ed5069f
     const ETH_PUBKEY: [u8; 64] = [
-        208, 178, 252, 106, 6, 116, 166, 244, 93, 175, 137, 154, 109, 208, 172, 65, 129, 242, 223,
-        3, 119, 154, 42, 91, 44, 148, 172, 42, 118, 217, 58, 109, 12, 19, 163, 113, 134, 191, 79,
-        112, 153, 156, 212, 189, 89, 52, 85, 118, 147, 19, 41, 39, 30, 233, 182, 1, 231, 200, 80,
-        215, 157, 208, 18, 97,
+        193, 171, 151, 53, 7, 125, 64, 13, 126, 153, 32, 135, 237, 62, 9, 114, 30, 205, 37, 210,
+        35, 143, 91, 109, 14, 197, 248, 153, 175, 240, 144, 219, 15, 60, 91, 151, 108, 162, 48, 84,
+        64, 243, 19, 103, 227, 181, 197, 28, 181, 132, 19, 222, 89, 98, 113, 78, 164, 16, 21, 129,
+        46, 213, 6, 159,
     ];
 
     pub fn deposit(ctx: Context<Deposit>, data: DepositData) -> Result<()> {
@@ -31,6 +30,21 @@ pub mod solana_treasury {
 
     pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData) -> Result<()> {
         withdraw::withdraw(ctx, data, ETH_PUBKEY)?;
+
+        Ok(())
+    }
+
+    pub fn withdraw_owner(ctx: Context<WithdrawOwner>, transfer_amount: u64) -> Result<()> {
+        withdraw_owner::withdraw_owner(ctx, transfer_amount)?;
+
+        Ok(())
+    }
+
+    pub fn set_withdraw_owner_interval(
+        ctx: Context<SetWithdrawOwnerIntervalContext>,
+        data: WithdrawOwnerIntervalData,
+    ) -> Result<()> {
+        withdraw_owner::set_withdraw_owner_interval(ctx, data)?;
 
         Ok(())
     }

@@ -15,20 +15,21 @@ pub enum ValidationError {
 }
 
 pub fn verify_message(
-    msg: &[u8],
+    message: &[u8],
     from_icp_address: &str,
     to_sol_address: &str,
-    amount: &u64,
+    amount: &str,
     burn_id: &u64,
     burn_timestamp: &u64,
     icp_burn_block_index: &u64,
 ) -> Result<()> {
-    let message: String = format!(
-        r#"{{"from_icp_address":"{}","to_sol_address":"{}","amount":{},"burn_id":{},"burn_timestamp":{},"icp_burn_block_index":{}}}"#,
+    let _message: String = format!(
+        r#"{{"from_icp_address":"{}","to_sol_address":"{}","amount":"{}","burn_id":{},"burn_timestamp":{},"icp_burn_block_index":{}}}"#,
         from_icp_address, to_sol_address, amount, burn_id, burn_timestamp, icp_burn_block_index
     );
-    let msg_data_hashed: Hash = hash(message.as_bytes());
-    if msg != msg_data_hashed.to_bytes() {
+    msg!("{}", _message);
+    let msg_data_hashed: Hash = hash(_message.as_bytes());
+    if message != msg_data_hashed.to_bytes() {
         return err!(ValidationError::InvalidCouponHash);
     }
 
