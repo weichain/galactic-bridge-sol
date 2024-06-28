@@ -10,7 +10,19 @@ const idlProgram = require("../target/idl/solana_treasury.json");
 const fs = require("fs");
 const os = require("os");
 
-const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+const connection = new Connection(
+  "http://api.mainnet-beta.solana.com",
+  "confirmed"
+);
+// const connection = new Connection(
+//   "https://solana-mainnet.g.alchemy.com/v2/rfd7aBfJ50gu7A_wesmRYaaecHOq57iS",
+//   "confirmed"
+// );
+// const connection = new Connection(
+//   "https://solana-mainnet.g.alchemy.com/v2/3OI2ioHFh0poFMYQbyKhtkX9j3e4G0Ek",
+//   "confirmed"
+// );
+// const connection = new Connection("https://api.devnet.solana.com", "confirmed");
 // const connection = new Connection("http://127.0.0.1:8899", "confirmed");
 
 const homeDirectory = os.homedir();
@@ -22,10 +34,21 @@ const wallet = Keypair.fromSecretKey(secretKey);
 
 const programId = new PublicKey("AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy");
 
+// const additionalFee = 1200000; // Example: 1000 microLamports
+// anchor1.web3.ComputeBudgetProgram.setComputeUnitPrice({
+//   microLamports: additionalFee,
+// });
+// console.log("ancohr1", anchor1);
+
 const [treasuryPDA] = PublicKey.findProgramAddressSync(
   [Buffer.from("treasury")],
   programId
 );
+
+const data = {
+  addressIcp: "pvmak-bbryo-hipdn-slp5u-fpsh5-tkf7f-v2wss-534um-jc454-ommhu-2qe",
+  amount: "100000000",
+};
 
 const idl = idlProgram;
 const provider = new anchor1.AnchorProvider(
@@ -36,10 +59,12 @@ const provider = new anchor1.AnchorProvider(
 const program = new anchor1.Program(idl, programId, provider);
 
 program.methods
-  .withdrawOwner(new anchor1.BN("1000000000"))
+  .deposit({
+    addressIcp: data.addressIcp,
+    amount: new anchor1.BN(data.amount),
+  })
   .accounts({
-    owner: wallet.publicKey,
-    receiver: wallet.publicKey,
+    payer: wallet.publicKey,
     treasury: treasuryPDA,
   })
   .transaction()
@@ -53,7 +78,7 @@ program.methods
       );
       console.log("signature", signature);
       const transactionDetails = await connection.getTransaction(signature);
-      console.log("transactionDetails", transactionDetails);
+      console.log(transactionDetails);
     } catch (e) {
       console.log("e", e);
     }

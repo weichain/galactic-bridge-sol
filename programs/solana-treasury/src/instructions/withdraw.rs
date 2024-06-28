@@ -87,9 +87,11 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
         return err!(WithdrawError::ReceiverCannotCoverRentExemption);
     }
 
-    let number_string = data.coupon.amount.replace("_", "");
-    let transfer_amount = u64::from_str_radix(&number_string, 10)
-        .expect(&format!("Invalid amount format: {}", number_string));
+    let transfer_amount_string = data.coupon.amount.replace('_', "");
+    let transfer_amount = transfer_amount_string
+        .parse::<u64>()
+        .unwrap_or_else(|_| panic!("Invalid amount format: {}", transfer_amount_string));
+
     let treasury_balance = ctx.accounts.treasury.lamports();
     if treasury_balance < transfer_amount {
         return err!(WithdrawError::TreasuryInsufficientAmount);
@@ -131,45 +133,5 @@ pub fn withdraw(ctx: Context<Withdraw>, data: WithdrawData, eth_pubkey: [u8; 64]
         ),
         transfer_amount,
     )?;
-    Ok(())
-}
-
-#[derive(Accounts)]
-pub struct WithdrawOwner<'info> {
-    #[account(mut, address = "8nZLXraZUARNmU3P8PKbJMS7NYs7aEyw6d1aQx1km3t2".parse::<Pubkey>().unwrap())]
-    pub owner: Signer<'info>,
-
-    #[account(mut)]
-    /// CHECK: this is safe because it's an admin call
-    pub receiver: AccountInfo<'info>,
-
-    #[account(
-        mut,
-        seeds = [
-            b"treasury",
-        ],
-        bump,
-    )]
-    treasury: SystemAccount<'info>,
-
-    pub system_program: Program<'info, System>,
-}
-
-pub fn withdraw_owner(ctx: Context<WithdrawOwner>, transfer_amount: u64) -> Result<()> {
-    // PDA signer seeds
-    let signer_seeds: &[&[&[u8]]] = &[&[b"treasury", &[ctx.bumps.treasury]]];
-
-    transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.system_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.treasury.to_account_info(),
-                to: ctx.accounts.receiver.to_account_info(),
-            },
-            signer_seeds,
-        ),
-        transfer_amount,
-    )?;
-
     Ok(())
 }

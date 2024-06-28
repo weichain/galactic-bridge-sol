@@ -4,18 +4,19 @@
 seeds = false
 skip-lint = false
 
-[programs.devnet]
+[programs.localnet]
 solana_treasury = "AAJL4DeXnWBNRowWjvpkAgwtAACpz6NfaA1T2p8Hrpy"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "/home/t3dkich/.config/solana/id.json"
 
 [scripts]
-deposit = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/call-deposit.ts"
-withdraw-owner = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/call-withdraw-owner.ts"
-getaddress = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/get-address.ts"
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/solana-treasury.ts"
+deposit = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/utils/calls/deposit.ts"
+withdraw = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/utils/calls/withdraw.ts"
+withdraw-owner = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/utils/calls/withdraw-owner.ts"
+getaddress = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/utils/get-address.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/main.ts"
