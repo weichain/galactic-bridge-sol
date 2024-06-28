@@ -27,7 +27,6 @@ pub fn verify_message(
         r#"{{"from_icp_address":"{}","to_sol_address":"{}","amount":"{}","burn_id":{},"burn_timestamp":{},"icp_burn_block_index":{}}}"#,
         from_icp_address, to_sol_address, amount, burn_id, burn_timestamp, icp_burn_block_index
     );
-    msg!("{}", _message);
     let msg_data_hashed: Hash = hash(_message.as_bytes());
     if message != msg_data_hashed.to_bytes() {
         return err!(ValidationError::InvalidCouponHash);
